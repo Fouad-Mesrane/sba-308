@@ -97,6 +97,8 @@ function getLearnerData(course, ag, submissions) {
   // declare needed variables
 
   const result = [];
+
+  
   // check to grab the correct course and course assignemnets
   if (course.id !== ag.course_id) {
     throw new Error("Please choose the correct course");
@@ -114,14 +116,29 @@ function getLearnerData(course, ag, submissions) {
     }
   );
 
-  // const groupedSubmissions = {}
+  // grouping learner submission to calculate avg
+  const groupedSubmissions = {};
 
-  // LearnerSubmissions.forEach(submission => {
-  //   const learner_id = submission.learner_id;
-  //   if ()
-  // })
+  LearnerSubmissions.forEach((submission) => {
+    const learner_id = submission.learner_id;
+    if (!groupedSubmissions[learner_id]) {
+      groupedSubmissions[learner_id] = [];
+    }
 
+    groupedSubmissions[learner_id].push(submission);
+  });
+
+  let score = 0;
+  let totalPossiblePoints = 0
+  const res = {}
+  //
   
+  for(let learner_id in groupedSubmissions) {
+   
+    const submissions = groupedSubmissions[learner_id];
+    console.log(submissions)
+  }
+ 
 
   return result;
 }
