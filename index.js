@@ -77,28 +77,9 @@ const LearnerSubmissions = [
 ];
 
 function getLearnerData(course, ag, submissions) {
-  // here, we would process this data to achieve the desired result.
-  // const result = [
-  //   {
-  //     id: 125,
-  //     avg: 0.985, // (47 + 150) / (50 + 150)
-  //     1: 0.94, // 47 / 50
-  //     2: 1.0 // 150 / 150
-  //   },
-  //   {
-  //     id: 132,
-  //     avg: 0.82, // (39 + 125) / (50 + 150)
-  //     1: 0.78, // 39 / 50
-  //     2: 0.833 // late: (140 - 15) / 150
-  //   }
-  // ];
-
-  //
-  // declare needed variables
-
   const result = [];
 
-  // check to grab the correct course and course assignemnets
+  // Check that the course id matches
   if (course.id !== ag.course_id) {
     throw new Error("Please choose the correct course");
   }
@@ -112,37 +93,68 @@ function getLearnerData(course, ag, submissions) {
   const learners = {};
 
   for (const submission of submissions) {
-    // destructuring variables from submission
     const {
       learner_id,
       assignment_id,
-      submission: { submitted_at },
+      submission: { submitted_at, score },
     } = submission;
 
-    let score = submission.submission.score;
-
-    //find the assignement
+    // Find the corresponding assignment
     const assignment = ag.assignments.find((a) => a.id === assignment_id);
     if (!assignment) continue;
-
-    // Check if the assignment is due
 
     const due_at = new Date(assignment.due_at);
     const submittedDate = new Date(submitted_at);
 
-    if (submittedDate > due_at) {
-      // deducting 10% if submission date is late
-      score -= assignment.points_possible * 0.1;
-    }
-
-    // skip if the date is in the future
-
+    // Skip assignment if it's not due yet
     if (due_at > new Date()) continue;
 
-    //calculate percentage
+    let finalScore = score;
 
-    const percentage = calculatePercentage(score, assignment.points_possible);
-    console.log(percentage);
+    // If the submission is late, deduct 10% of the total points
+    if (submittedDate > due_at) {
+      finalScore -= assignment.points_possible * 0.1;
+    }
+
+    // Calculate the percentage for the assignment
+    const percentage = calculatePercentage(
+      finalScore,
+      assignment.points_possible
+    );
+
+    // Organize learner data
+    if (!learners[learner_id]) {
+      learners[learner_id] = {
+        id: learner_id,
+        avg: 0,
+        totalScore: 0,
+        totalPoints: 0,
+      };
+    }
+
+    // Store the percentage for the specific assignment by assignment_id
+    learners[learner_id][assignment_id] = percentage;
+
+    // Accumulate total scores and points for avg calculation later
+    learners[learner_id].totalScore += finalScore;
+    learners[learner_id].totalPoints += assignment.points_possible;
+  }
+
+  // calculate the average and build the result array
+  for (let key in learners) {
+    const learner = learners[key];
+
+    // Avoid dividing by zero and calculate the weighted average
+    if (learner.totalPoints > 0) {
+      learner.avg = learner.totalScore / learner.totalPoints;
+    }
+
+    // Clean up the learner object by removing totalScore and totalPoints
+    delete learner.totalScore;
+    delete learner.totalPoints;
+
+    // Push the learner data to the result array
+    result.push(learner);
   }
 
   return result;
@@ -151,5 +163,3 @@ function getLearnerData(course, ag, submissions) {
 const result = getLearnerData(CourseInfo, AssignmentGroup, LearnerSubmissions);
 
 console.log(result);
-
-// helper functions
