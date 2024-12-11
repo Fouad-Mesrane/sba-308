@@ -98,47 +98,52 @@ function getLearnerData(course, ag, submissions) {
 
   const result = [];
 
-  
   // check to grab the correct course and course assignemnets
   if (course.id !== ag.course_id) {
     throw new Error("Please choose the correct course");
   }
 
-  // validating the data is correct
-  validateData(ag, submissions);
-
-  // filtering assignements that are in the future
-
-  const filteredAssignments = AssignmentGroup.assignments.filter(
-    (assignment) => {
-      const due_at = new Date(assignment.due_at);
-      return due_at < new Date();
-    }
-  );
-
-  // grouping learner submission to calculate avg
-  const groupedSubmissions = {};
-
-  LearnerSubmissions.forEach((submission) => {
-    const learner_id = submission.learner_id;
-    if (!groupedSubmissions[learner_id]) {
-      groupedSubmissions[learner_id] = [];
-    }
-
-    groupedSubmissions[learner_id].push(submission);
-  });
-
-  let score = 0;
-  let totalPossiblePoints = 0
-  const res = {}
-  //
-  
-  for(let learner_id in groupedSubmissions) {
-   
-    const submissions = groupedSubmissions[learner_id];
-    console.log(submissions)
+  function calculatePercentage(score, pointsPossible) {
+    if (pointsPossible <= 0) throw new Error("Points possible cannot be zero.");
+    return score / pointsPossible;
   }
- 
+
+  // Process submissions grouped by learner
+  const learners = {};
+
+  for (const submission of submissions) {
+    // destructuring variables from submission
+    const {
+      learner_id,
+      assignment_id,
+      submission: { submitted_at },
+    } = submission;
+
+    let score = submission.submission.score;
+
+    //find the assignement
+    const assignment = ag.assignments.find((a) => a.id === assignment_id);
+    if (!assignment) continue;
+
+    // Check if the assignment is due
+
+    const due_at = new Date(assignment.due_at);
+    const submittedDate = new Date(submitted_at);
+
+    if (submittedDate > due_at) {
+      // deducting 10% if submission date is late
+      score -= assignment.points_possible * 0.1;
+    }
+
+    // skip if the date is in the future
+
+    if (due_at > new Date()) continue;
+
+    //calculate percentage
+
+    const percentage = calculatePercentage(score, assignment.points_possible);
+    console.log(percentage);
+  }
 
   return result;
 }
@@ -148,42 +153,3 @@ const result = getLearnerData(CourseInfo, AssignmentGroup, LearnerSubmissions);
 console.log(result);
 
 // helper functions
-
-// a function to check data if it is valid
-
-function validateData(ag, submissions) {
-  const assignemnets = ag.assignments;
-  assignemnets.forEach((assignment) => {
-    if (
-      typeof assignment.points_possible !== "number" ||
-      assignment.points_possible <= 0
-    ) {
-      throw new Error(
-        `Invalid points_possible for assignment ID ${assignment.id}`
-      );
-    }
-
-    if (!assignment.due_at) {
-      throw new Error(`Missing due date for assignment ID ${assignment.id}`);
-    }
-  });
-
-  //validating learner data
-
-  submissions.forEach((submission) => {
-    if (
-      !submission.learner_id ||
-      !submission.assignment_id ||
-      !submission.submission
-    ) {
-      throw new Error(
-        `Invalid submission data for learner ${submission.learner_id}`
-      );
-    }
-    if (typeof submission.submission.score !== "number") {
-      throw new Error(
-        `Score for learner ${submission.learner_id} must be a number`
-      );
-    }
-  });
-}
