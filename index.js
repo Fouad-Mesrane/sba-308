@@ -80,13 +80,25 @@ function getLearnerData(course, ag, submissions) {
   const result = [];
 
   // Check that the course id matches
-  if (course.id !== ag.course_id) {
-    throw new Error("Please choose the correct course");
+
+  try {
+    if (course.id !== ag.course_id) {
+      throw new Error("Please choose the correct course");
+    }
+  } catch (error) {
+    console.error(error.message);
+    return [];
   }
 
   function calculatePercentage(score, pointsPossible) {
-    if (pointsPossible <= 0) throw new Error("Points possible cannot be zero.");
-    return score / pointsPossible;
+    try {
+      if (pointsPossible <= 0)
+        throw new Error("Points possible cannot be zero.");
+      return score / pointsPossible;
+    } catch (error) {
+      console.error("Error in calculating percentage:", error.message);
+      return 0;
+    }
   }
 
   // Process submissions grouped by learner
